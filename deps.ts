@@ -5,4 +5,4 @@ export type { GitHubCodemodBuilderCreatePROptions } from "https://deno.land/x/co
 export { GitHubCodemodBuilder } from "https://deno.land/x/codemod@v0.0.3/github/mod.ts";
 export type { GitHubAPIClientOptions } from "https://deno.land/x/codemod@v0.0.3/github/api/mod.ts";
 export type { Officer } from "https://acmcsuf.com/code/raw/65d3cac9653f4469f51a4dad224d8878795ffc55/src/lib/public/board/types.ts";
-export { default as nacl } from "npm:tweetnacl@1.0.3";
+export { default as nacl } from "https://esm.sh/tweetnacl@1.0.3";
