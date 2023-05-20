@@ -1,5 +1,6 @@
 import type {
   DiscordAPIClientInterface,
+  EditOriginalInteractionResponseOptions,
   RegisterCommandOptions,
 } from "./discord_api_client_interface.ts";
 
@@ -24,6 +25,26 @@ export class DiscordAPIClient implements DiscordAPIClientInterface {
       );
     }
   }
+
+  async editOriginalInteractionResponse(
+    options: EditOriginalInteractionResponseOptions,
+  ): Promise<void> {
+    const url = makeEditOriginalInteractionResponseURL(
+      options.botID,
+      options.interactionToken,
+    );
+    const response = await fetch(url, {
+      method: "PATCH",
+      headers: new Headers([["Content-Type", "application/json"]]),
+      body: JSON.stringify({ content: options.content }),
+    });
+    if (!response.ok) {
+      console.error("text:", await response.text());
+      throw new Error(
+        `Failed to edit original interaction response: ${response.status} ${response.statusText}`,
+      );
+    }
+  }
 }
 
 /**
@@ -41,6 +62,17 @@ export function makeRegisterCommandsURL(
   base = DISCORD_API_URL,
 ) {
   return new URL(`${base}/applications/${clientID}/commands`);
+}
+
+/**
+ * makeEditOriginalInteractionResponseURL makes the URL to edit the original interaction response.
+ */
+export function makeEditOriginalInteractionResponseURL(
+  clientID: string,
+  interactionToken: string,
+  base = DISCORD_API_URL,
+) {
+  return `${base}/webhooks/${clientID}/${interactionToken}/messages/@original`;
 }
 
 /**

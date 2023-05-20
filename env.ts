@@ -30,15 +30,6 @@ if (!env.DISCORD_CLIENT_ID) {
  */
 export const DISCORD_CLIENT_ID = env.DISCORD_CLIENT_ID;
 
-if (!env.DISCORD_GUILD_ID) {
-  throw new Error("DISCORD_GUILD_ID environment variable is required");
-}
-
-/**
- * DISCORD_GUILD_ID is the Discord guild ID.
- */
-export const DISCORD_GUILD_ID = env.DISCORD_GUILD_ID;
-
 if (!env.DISCORD_TOKEN) {
   throw new Error("DISCORD_TOKEN environment variable is required");
 }
@@ -47,3 +38,32 @@ if (!env.DISCORD_TOKEN) {
  * DISCORD_TOKEN is the Discord bot token.
  */
 export const DISCORD_TOKEN = env.DISCORD_TOKEN;
+
+if (!env.DISCORD_ROLE_ID) {
+  throw new Error("DISCORD_ROLE_ID environment variable is required");
+}
+
+/**
+ * DISCORD_ROLE_ID is the Discord role ID that is allowed to use the Boardd
+ * application command. The command is intended to be used by board members.
+ */
+export const DISCORD_ROLE_ID = env.DISCORD_ROLE_ID;
+
+if (!env.DISCORD_ADMIN_ROLES) {
+  throw new Error("DISCORD_ADMIN_ROLES environment variable is required");
+}
+
+/**
+ * DISCORD_ADMIN_ROLES is a comma-separated list of Discord role IDs that are
+ * allowed to use the Boardd application command on any user.
+ */
+export const DISCORD_ADMIN_ROLES = env.DISCORD_ADMIN_ROLES.split(",");
+
+if (!env.GITHUB_TOKEN) {
+  throw new Error("GITHUB_TOKEN environment variable is required");
+}
+
+/**
+ * GITHUB_TOKEN is the GitHub personal access token.
+ */
+export const GITHUB_TOKEN = env.GITHUB_TOKEN;

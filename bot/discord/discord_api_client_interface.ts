@@ -19,6 +19,13 @@ export interface DiscordAPIClientInterface {
    * ```
    */
   registerCommand(o: RegisterCommandOptions): Promise<void>;
+
+  /**
+   * editOriginalInteractionResponse edits the original interaction response.
+   */
+  editOriginalInteractionResponse(
+    o: EditOriginalInteractionResponseOptions,
+  ): Promise<void>;
 }
 
 /**
@@ -28,4 +35,14 @@ export interface RegisterCommandOptions {
   botID: string;
   botToken: string;
   app: discord.RESTPostAPIApplicationCommandsJSONBody;
+}
+
+/**
+ * EditOriginalInteractionResponseOptions is the initialization to edit the original interaction response.
+ */
+export interface EditOriginalInteractionResponseOptions {
+  botID: string;
+  botToken: string;
+  interactionToken: string;
+  content: string;
 }
