@@ -2,11 +2,23 @@
 // deno run -A main.ts
 //
 
-import { discord, discordUtils } from "./deps.ts";
-import { APP_BOARDD } from "./bot/app/mod.ts";
+import { discord } from "./deps.ts";
 import { DiscordAPIClient, verify } from "./bot/discord/mod.ts";
+import {
+  APP_BOARDD,
+  BOARDD_BOARD_MEMBER,
+  BOARDD_DISCORD_TAG,
+  BOARDD_FULL_NAME,
+  BOARDD_GITHUB_TAG,
+  BOARDD_LINKEDIN_TAG,
+  BOARDD_PICTURE,
+} from "./bot/app/mod.ts";
+import type { BoarddOptions } from "./boardd/mod.ts";
+import { boardd } from "./boardd/mod.ts";
 import { doNgrok } from "./ngrok.ts";
 import * as env from "./env.ts";
+
+const api = new DiscordAPIClient();
 
 if (import.meta.main) {
   await main();
@@ -14,7 +26,6 @@ if (import.meta.main) {
 
 export async function main() {
   // Overwrite the Discord Application Command.
-  const api = new DiscordAPIClient();
   await api.registerCommand({
     app: APP_BOARDD,
     botID: env.DISCORD_CLIENT_ID,
@@ -65,19 +76,116 @@ export async function handle(request: Request): Promise<Response> {
     }
 
     case discord.InteractionType.ApplicationCommand: {
-      if (!discordUtils.isChatInputApplicationCommandInteraction(interaction)) {
+      if (
+        !discord.Utils.isChatInputApplicationCommandInteraction(interaction)
+      ) {
         return new Response("Invalid request", { status: 400 });
       }
 
+      if (!interaction.member?.user) {
+        return new Response("Invalid request", { status: 400 });
+      }
+
+      if (!interaction.member.roles.includes(env.DISCORD_ROLE_ID)) {
+        return new Response("Invalid request", { status: 400 });
+      }
+
+      // Make the Boardd options.
+      const options: BoarddOptions = {
+        githubPAT: env.GITHUB_TOKEN,
+        actor: {
+          tag:
+            `${interaction.member.user.username}#${interaction.member.user.discriminator}`,
+          isAdmin: interaction.member.roles.some((role) =>
+            env.DISCORD_ADMIN_ROLES.includes(role)
+          ),
+        },
+        data: {},
+      };
+
+      const fullNameInput = interaction.data.options?.find((option) =>
+        option.name === BOARDD_FULL_NAME
+      );
+      if (fullNameInput?.type === discord.ApplicationCommandOptionType.String) {
+        options.data.fullName = fullNameInput.value;
+      }
+
+      const pictureURLInput = interaction.data.options?.find((option) =>
+        option.name === BOARDD_PICTURE
+      );
+      if (
+        pictureURLInput?.type === discord.ApplicationCommandOptionType.String
+      ) {
+        options.data.pictureURL = pictureURLInput.value;
+      }
+
+      const githubTagInput = interaction.data.options?.find((option) =>
+        option.name === BOARDD_GITHUB_TAG
+      );
+      if (
+        githubTagInput?.type === discord.ApplicationCommandOptionType.String
+      ) {
+        options.data.githubTag = githubTagInput.value;
+      }
+
+      const discordTagInput = interaction.data.options?.find((option) =>
+        option.name === BOARDD_DISCORD_TAG
+      );
+      if (
+        discordTagInput?.type === discord.ApplicationCommandOptionType.String
+      ) {
+        options.data.discordTag = discordTagInput.value;
+      }
+
+      const linkedinTagInput = interaction.data.options?.find((option) =>
+        option.name === BOARDD_LINKEDIN_TAG
+      );
+      if (
+        linkedinTagInput?.type === discord.ApplicationCommandOptionType.String
+      ) {
+        options.data.linkedinTag = linkedinTagInput.value;
+      }
+
+      const boardMemberTagInput = interaction.data.options?.find((option) =>
+        option.name === BOARDD_BOARD_MEMBER
+      );
+      if (
+        boardMemberTagInput?.type === discord.ApplicationCommandOptionType.User
+      ) {
+        options.data.boardMemberTag = boardMemberTagInput.value;
+      }
+
+      // Invoke the Boardd operation.
+      boardd(options)
+        .then((result) =>
+          api.editOriginalInteractionResponse({
+            botID: env.DISCORD_CLIENT_ID,
+            botToken: env.DISCORD_TOKEN,
+            interactionToken: interaction.token,
+            content:
+              `Successfully created <https://acmcsuf.com/pull/${result.prNumber}>!`,
+          })
+        )
+        .catch((error) => {
+          if (error instanceof Error) {
+            api.editOriginalInteractionResponse({
+              botID: env.DISCORD_CLIENT_ID,
+              botToken: env.DISCORD_TOKEN,
+              interactionToken: interaction.token,
+              content: error.message,
+            });
+          }
+        });
+
+      // Acknowledge the interaction.
       return Response.json(
         {
-          type: discord.InteractionResponseType.ChannelMessageWithSource,
+          type:
+            discord.InteractionResponseType.DeferredChannelMessageWithSource,
           data: {
-            content: `You said:\n\`\`\`json\n${
-              JSON.stringify(interaction.data, null, 2)
-            }\n\`\`\``,
+            flags: discord.MessageFlags.Ephemeral,
           },
-        } satisfies discord.APIInteractionResponseChannelMessageWithSource,
+        } satisfies discord.APIInteractionResponseDeferredChannelMessageWithSource,
       );
     }
 

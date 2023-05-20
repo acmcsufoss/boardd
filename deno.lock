@@ -160,7 +160,8 @@
     "https://deno.land/x/github_api_types@2023-05-17-05-41/mod.ts": "dc3a5cd3176c78085b49601e9c3fccac24809b037929230293255edabafbd0bb",
     "https://deno.land/x/ngrok@4.0.1/deps.ts": "e9972c4bf050699cf98aaa3887ed5be5911f8f3ca443183bc5145c2a6e38f921",
     "https://deno.land/x/ngrok@4.0.1/mod.ts": "63f18ee372119917863738e438ba1c4fc871fd493aa1c0fe8c40c74df90b3f60",
-    "https://deno.land/x/typed_event_target@1.0.1/mod.ts": "99361353f5a923bce9299d531b7fb6d47dd81fb01e9cd2c42cdd5ff89ced45ee"
+    "https://deno.land/x/typed_event_target@1.0.1/mod.ts": "99361353f5a923bce9299d531b7fb6d47dd81fb01e9cd2c42cdd5ff89ced45ee",
+    "https://raw.githubusercontent.com/EthanThatOneKid/acmcsuf.com/65d3cac9653f4469f51a4dad224d8878795ffc55/src/lib/public/board/types.ts": "9da56b81fdeeda2d9536453df6edc8ff584e45596fe451bf6331aea236d2bf03"
   },
   "npm": {
     "specifiers": {
