@@ -43,6 +43,7 @@ export async function boardd(options: BoarddOptions): Promise<BoarddResult> {
 
   // Update officer data in new branch.
   const target = options.data.boardMemberTag ?? options.actor.tag;
+  const ref = `boardd-${toSlug(target)}`;
   let fullName = options.data.fullName;
 
   // If pictureURL is not provided, download the picture.
@@ -50,95 +51,102 @@ export async function boardd(options: BoarddOptions): Promise<BoarddResult> {
     ? await fetch(options.data.pictureURL).then((response) => response.blob())
     : undefined;
 
-  // Initialize base Codemod builder.
-  const builder = new GitHubCodemodBuilder(
-    {
-      owner: ACMCSUF_OWNER,
-      repo: ACMCSUF_REPO,
-      token: options.githubPAT,
-    },
-    {},
-    customFetcher,
-  );
+  // Steps:
+  // 1. Create a branch with the updated JSON file. Check the old picture.
+  // 2. If the picture is different, upload the new picture and delete the old one.
+  // 3. Create a PR with the changes.
 
-  // Clone the builder so we can later upload the picture as needed.
-  let oldPicture: string | undefined;
-  let newPicture: string | undefined;
-  const pictureBuilder = builder.clone();
-
-  // Edit the officers.json file.
-  builder.editText("src/lib/public/board/data/officers.json", (content) => {
-    // Parse the officers.json file.
-    const officers = JSON.parse(content) as Officer[];
-
-    // Find the officer.
-    const officerIndex = officers.findIndex((officer) =>
-      officer.socials?.discord === target
-    );
-    if (officerIndex === -1 && !options.actor.isAdmin) {
-      throw new Error(
-        "You can only create a new board member profile unless you are an admin.",
-      );
-    }
-
-    // Patch the officer.
-    const base = officerIndex !== -1 ? officers[officerIndex] : undefined;
-    fullName ??= base?.fullName;
-    if (fullName === undefined) {
-      throw new Error("Full name cannot be undefined.");
-    }
-
-    if (pictureBlob) {
-      newPicture = `${toSlug(fullName)}.webp`;
-      oldPicture = base?.picture;
-    }
-    const socials: Officer["socials"] = {
-      github: options.data.githubTag ?? base?.socials?.github,
-      linkedin: options.data.linkedinTag ?? base?.socials?.linkedin,
-      discord: target,
-    };
-    const positions: Officer["positions"] = base?.positions ?? {};
-    const officer: Officer = {
-      fullName,
-      socials,
-      positions,
-      picture: newPicture ?? base?.picture ?? "placeholder.webp",
-    };
-
-    // Update the officers array.
-    if (officerIndex === -1) {
-      officers.push(officer);
-    } else {
-      officers[officerIndex] = officer;
-    }
-
-    // Return the new officers.json file content.
-    return JSON.stringify(officers, null, 2) + "\n";
-  });
-
-  // If pictureURL is provided, create or update the new branch. Otherwise,
-  // create the PR.
-  const prOptions: GitHubCodemodBuilderCreatePROptions = {
-    newBranchName: `boardd-${toSlug(target)}`,
-    title: `[BOARDD] Update ${fullName}'s board member profile`,
-    body:
-      `This PR was created by ${options.actor.tag} using the \`boardd\` slash command. [_More info_](https://oss.acmcsuf.com/boardd#readme).\n\n${
-        toChangelog(options.data)
-      }`,
-    message: `Update ${fullName}'s board member profile`,
+  const apiOptions: Parameters<typeof createCodemod>[1] = {
+    owner: ACMCSUF_OWNER,
+    repo: ACMCSUF_REPO,
+    token: options.githubPAT,
   };
-  if (!options.data.pictureURL || !pictureBlob) {
-    const prResult = await builder.createPR(prOptions);
-    return { prNumber: prResult.pr.number };
-  }
 
-  // Create or update the new branch.
-  await builder.createOrUpdateBranch({
-    message: prOptions.message,
-    newBranchName: prOptions.newBranchName,
-  });
+  const stepOne = await createCodemod((codemod) =>
+    codemod
+      .createTree((tree) =>
+        tree
+          .text("src/lib/public/board/data/officers.json", (content) => {
+            // Parse the officers.json file.
+            const officers = JSON.parse(content) as Officer[];
 
-  // Delete old picture if unused.
+            // Find the officer.
+            const officerIndex = officers.findIndex((officer) =>
+              officer.socials?.discord === target
+            );
+            if (officerIndex === -1 && !options.actor.isAdmin) {
+              throw new Error(
+                "You can only create a new board member profile unless you are an admin.",
+              );
+            }
+
+            // Patch the officer.
+            const base = officerIndex !== -1
+              ? officers[officerIndex]
+              : undefined;
+            fullName ??= base?.fullName;
+            if (fullName === undefined) {
+              throw new Error("Full name cannot be undefined.");
+            }
+
+            if (pictureBlob) {
+              newPicture = `${toSlug(fullName)}.webp`;
+              oldPicture = base?.picture;
+            }
+            const socials: Officer["socials"] = {
+              github: options.data.githubTag ?? base?.socials?.github,
+              linkedin: options.data.linkedinTag ?? base?.socials?.linkedin,
+              discord: target,
+            };
+            const positions: Officer["positions"] = base?.positions ?? {};
+            const officer: Officer = {
+              fullName,
+              socials,
+              positions,
+              picture: newPicture ?? base?.picture ?? "placeholder.webp",
+            };
+
+            // Update the officers array.
+            if (officerIndex === -1) {
+              officers.push(officer);
+            } else {
+              officers[officerIndex] = officer;
+            }
+
+            // Return the new officers.json file content.
+            return JSON.stringify(officers, null, 2) + "\n";
+          })
+      )
+      .createCommit(({ 0: tree }) => ({
+        message: `Update ${fullName}'s board member profile`,
+        tree: tree.sha,
+      }))
+      .createOrUpdateBranch(({ 1: commit }) => ({
+        ref,
+        sha: commit.sha,
+      })), apiOptions);
+
+  if (pictureBlob && oldPicture !== newPicture) {
+    const stepTwo = await createCodemod((codemod) =>
+      codemod
+        .createTree((tree) =>
+          tree
+            .baseRef(ref)
+        )
+        .createCommit(({ 0: blob }) => ({
+          message: `Upload ${fullName}'s board member profile picture`,
+          content: blob.sha,
+        }))
+        .createOrUpdateBranch(({ 1: commit }) => ({
+          ref: `boardd-${toSlug(target)}-picture`,
+          sha: commit.sha,
+        })), apiOptions);
+
+    // const prNumber = results[2]?.number;
+    // return { number: prNumber };
+
+    /*
+     // Delete old picture if unused.
   if (oldPicture && oldPicture !== newPicture) {
     pictureBuilder.delete(`static/assets/authors/${oldPicture}`);
   }
@@ -149,6 +157,8 @@ export async function boardd(options: BoarddOptions): Promise<BoarddResult> {
   // Commit the picture and create a PR.
   const prResult = await pictureBuilder.createPR(prOptions);
   return { prNumber: prResult.pr.number };
+  */
+  }
 }
 
 /**
