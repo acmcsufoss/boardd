@@ -1,5 +1,5 @@
-import type { GitHubCodemodBuilderCreatePROptions, Officer } from "../deps.ts";
-import { GitHubCodemodBuilder } from "../deps.ts";
+import type { Officer } from "../deps.ts";
+import { createCodemod } from "../deps.ts";
 
 /**
  * ACMCSUF_OWNER is the owner of the acmcsuf.com GitHub repository.
@@ -10,20 +10,6 @@ export const ACMCSUF_OWNER = "EthanThatOneKid";
  * ACMCSUF_REPO is the name of the acmcsuf.com GitHub repository.
  */
 export const ACMCSUF_REPO = "acmcsuf.com";
-
-async function customFetcher(
-  url: Parameters<typeof fetch>[0],
-  options?: Parameters<typeof fetch>[1],
-): Promise<Response> {
-  const response = await fetch(url, options);
-  if (!response.ok) {
-    const bodyText = await response.text();
-    console.error(`Error: ${response.status} ${response.statusText}`);
-    console.error(`Response body: ${bodyText}`);
-  }
-
-  return response;
-}
 
 /**
  * boardd is the main function for the boardd command.
@@ -62,6 +48,8 @@ export async function boardd(options: BoarddOptions): Promise<BoarddResult> {
     token: options.githubPAT,
   };
 
+  let oldPicture: string | undefined;
+  let newPicture: string | undefined;
   const stepOne = await createCodemod((codemod) =>
     codemod
       .createTree((tree) =>
@@ -126,39 +114,34 @@ export async function boardd(options: BoarddOptions): Promise<BoarddResult> {
         sha: commit.sha,
       })), apiOptions);
 
+  let stepTwo: any;
   if (pictureBlob && oldPicture !== newPicture) {
-    const stepTwo = await createCodemod((codemod) =>
+    stepTwo = await createCodemod((codemod) =>
       codemod
         .createTree((tree) =>
           tree
             .baseRef(ref)
+            .delete(`static/assets/authors/${oldPicture}`)
+            .file(`static/assets/authors/${newPicture}`, pictureBlob)
         )
-        .createCommit(({ 0: blob }) => ({
+        .createCommit(({ 0: tree }) => ({
           message: `Upload ${fullName}'s board member profile picture`,
-          content: blob.sha,
+          tree: tree.sha,
         }))
         .createOrUpdateBranch(({ 1: commit }) => ({
           ref: `boardd-${toSlug(target)}-picture`,
           sha: commit.sha,
         })), apiOptions);
-
-    // const prNumber = results[2]?.number;
-    // return { number: prNumber };
-
-    /*
-     // Delete old picture if unused.
-  if (oldPicture && oldPicture !== newPicture) {
-    pictureBuilder.delete(`static/assets/authors/${oldPicture}`);
   }
 
-  // Add the new picture.
-  pictureBuilder.setBlob(`static/assets/authors/${newPicture}`, pictureBlob);
+  const stepThree = await createCodemod((codemod) =>
+    codemod.maybeCreatePR({
+      head: ref,
+      base: "",
+    }), apiOptions);
 
-  // Commit the picture and create a PR.
-  const prResult = await pictureBuilder.createPR(prOptions);
-  return { prNumber: prResult.pr.number };
-  */
-  }
+  console.log({ stepOne, stepTwo, stepThree });
+  return { prNumber: stepThree[0]?.number! };
 }
 
 /**
