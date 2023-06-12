@@ -33,8 +33,13 @@ export async function main() {
   });
 
   console.log(
-    "Add Boardd to your server:",
+    "Invite Boardd to your server:",
     `https://discord.com/api/oauth2/authorize?client_id=${env.DISCORD_CLIENT_ID}&scope=applications.commands`,
+  );
+
+  console.log(
+    "Discord application information:",
+    `https://discord.com/developers/applications/${env.DISCORD_CLIENT_ID}/bot`,
   );
 
   // In development mode, we use ngrok to expose the server to the Internet.
