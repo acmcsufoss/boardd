@@ -1,4 +1,4 @@
-import { dotenv } from "./deps.ts";
+import { dotenv, parseBoolean } from "./deps.ts";
 
 await dotenv.load({ export: true });
 
@@ -10,7 +10,7 @@ export const PORT = parseInt(Deno.env.get("PORT") || "8080");
 /**
  * DEV is true if the application is running in development mode.
  */
-export const DEV = Deno.env.get("DEV") === "true";
+export const DEV = parseBoolean(Deno.env.get("DEV"));
 
 const RAW_DISCORD_PUBLIC_KEY = Deno.env.get("DISCORD_PUBLIC_KEY");
 if (!RAW_DISCORD_PUBLIC_KEY) {

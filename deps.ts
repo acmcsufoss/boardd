@@ -5,3 +5,4 @@ export * from "https://deno.land/x/codemod@0.0.4/github/mod.ts";
 export type { GitHubAPIClientOptions } from "https://deno.land/x/codemod@0.0.4/github/api/mod.ts";
 export type { Officer } from "https://acmcsuf.com/code/raw/65d3cac9653f4469f51a4dad224d8878795ffc55/src/lib/public/board/types.ts";
 export { default as nacl } from "https://esm.sh/tweetnacl@1.0.3";
+export { parse as parseBoolean } from "https://deno.land/x/boolean@0.0.1/mod.ts";
