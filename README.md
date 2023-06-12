@@ -12,7 +12,7 @@ To run the server, run the following command:
 deno run -A main.ts
 ```
 
-> NOTE: The `-A` flag is required to allow the server to access environment
+> NOTE: The `-A` flag is a shortcut to allow the server to access environment
 > variables.
 >
 > Be sure to set the environment variables before running the server.
