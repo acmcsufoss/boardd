@@ -114,34 +114,45 @@ export async function boardd(options: BoarddOptions): Promise<BoarddResult> {
         sha: commit.sha,
       })), apiOptions);
 
-  let stepTwo: any;
-  if (pictureBlob && oldPicture !== newPicture) {
-    stepTwo = await createCodemod((codemod) =>
+  const stepTwo = await (async () => {
+    if (!pictureBlob || !newPicture) {
+      return;
+    }
+
+    return await createCodemod((codemod) =>
       codemod
-        .createTree((tree) =>
-          tree
+        .createTree((tree) => {
+          if (oldPicture) {
+            tree.delete(`static/assets/authors/${oldPicture}`);
+          }
+
+          return tree
             .baseRef(ref)
-            .delete(`static/assets/authors/${oldPicture}`)
-            .file(`static/assets/authors/${newPicture}`, pictureBlob)
-        )
+            .file(`static/assets/authors/${newPicture}`, pictureBlob);
+        })
         .createCommit(({ 0: tree }) => ({
           message: `Upload ${fullName}'s board member profile picture`,
           tree: tree.sha,
         }))
         .createOrUpdateBranch(({ 1: commit }) => ({
-          ref: `boardd-${toSlug(target)}-picture`,
+          ref,
           sha: commit.sha,
         })), apiOptions);
-  }
+  })();
 
   const stepThree = await createCodemod((codemod) =>
     codemod.maybeCreatePR({
       head: ref,
-      base: "",
+      base: "", // Defaults to repository's default branch.
+      title: `[BOARDD] Update ${fullName}'s board member profile`,
+      body:
+        `This PR was created by ${options.actor.tag} using the \`boardd\` slash command. [_More info_](https://oss.acmcsuf.com/boardd#readme).\n\n${
+          toChangelog(options.data)
+        }`,
     }), apiOptions);
 
   console.log({ stepOne, stepTwo, stepThree });
-  return { prNumber: stepThree[0]?.number! };
+  return { prNumber: stepThree[0]?.number };
 }
 
 /**
@@ -249,5 +260,5 @@ export interface BoarddOptions {
  * BoarddResult is the result of the boardd function.
  */
 export interface BoarddResult {
-  prNumber: number;
+  prNumber?: number;
 }
