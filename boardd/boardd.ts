@@ -36,6 +36,7 @@ export async function boardd(options: BoarddOptions): Promise<BoarddResult> {
   const target = options.data.boardMemberTag ?? options.actor.tag;
   const ref = `boardd-${toSlug(target)}`;
   let fullName = options.data.fullName;
+  let actorGitHubTag: string | undefined;
 
   // If pictureURL is not provided, download the picture.
   const pictureBlob = options.data.pictureURL
@@ -66,49 +67,43 @@ export async function boardd(options: BoarddOptions): Promise<BoarddResult> {
             // Parse the officers.json file.
             const officers = JSON.parse(content) as Officer[];
 
-            // Find the officer.
-            const officerIndex = officers.findIndex((officer) => {
-              const discriminatorIndex = officer.socials?.discord?.indexOf("#");
-              const candidate = discriminatorIndex !== -1
-                ? officer.socials?.discord?.slice(0, discriminatorIndex)
-                : officer.socials?.discord;
-              return candidate?.toLowerCase() === target;
-            });
-            if (officerIndex === -1 && !options.actor.isAdmin) {
+            // Find the base officer.
+            const [officer, officerIndex] = findOfficer(officers, target);
+            if (!officer && !options.actor.isAdmin) {
               throw new Error(
                 "You can only create a new board member profile if you are an admin.",
               );
             }
 
+            // Find the actor.
+            const [actor] = findOfficer(officers, options.actor.tag);
+
             // Patch the officer.
-            const base = officerIndex !== -1
-              ? officers[officerIndex]
-              : undefined;
-            fullName ??= base?.fullName;
+            fullName ??= officer?.fullName;
             if (fullName === undefined) {
               throw new Error("Full name cannot be undefined.");
             }
 
             if (pictureBlob) {
               newPicture = `${toSlug(fullName)}.webp`;
-              oldPicture = base?.picture;
+              oldPicture = officer?.picture;
             }
             const socials: Officer["socials"] = {
-              github: options.data.githubTag ?? base?.socials?.github,
-              linkedin: options.data.linkedinTag ?? base?.socials?.linkedin,
+              github: options.data.githubTag ?? officer?.socials?.github,
+              linkedin: options.data.linkedinTag ?? officer?.socials?.linkedin,
               discord: target,
             };
-            const positions: Officer["positions"] = base?.positions ?? {};
-            const officer: Officer = {
+            const positions: Officer["positions"] = officer?.positions ?? {};
+            const newOfficer: Officer = {
               fullName,
               socials,
               positions,
-              picture: newPicture ?? base?.picture ?? "placeholder.webp",
+              picture: newPicture ?? officer?.picture ?? "placeholder.webp",
             };
 
             // Update the officers array.
-            if (officerIndex === -1) {
-              officers.push(officer);
+            if (!officer) {
+              officers.push(newOfficer);
             } else {
               officers[officerIndex] = officer;
             }
@@ -165,6 +160,27 @@ export async function boardd(options: BoarddOptions): Promise<BoarddResult> {
 
   console.log({ stepOne, stepTwo, stepThree });
   return { prNumber: stepThree[0]?.number };
+}
+
+/**
+ * findOfficer finds an officer by their Discord tag.
+ */
+export function findOfficer(
+  officers: Officer[],
+  tag: string,
+): [Officer | undefined, number] {
+  const officerIndex = officers.findIndex((officer) => {
+    const discriminatorIndex = officer.socials?.discord?.indexOf("#");
+    const candidate = discriminatorIndex !== -1
+      ? officer.socials?.discord?.slice(0, discriminatorIndex)
+      : officer.socials?.discord;
+    return candidate?.toLowerCase() === tag;
+  });
+  if (officerIndex === -1) {
+    return [undefined, -1];
+  }
+
+  return [officers[officerIndex], officerIndex];
 }
 
 /**
