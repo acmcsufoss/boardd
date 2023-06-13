@@ -15,7 +15,6 @@ import {
 } from "./bot/app/mod.ts";
 import type { BoarddOptions } from "./boardd/mod.ts";
 import { boardd } from "./boardd/mod.ts";
-import { doNgrok } from "./ngrok.ts";
 import * as env from "./env.ts";
 
 const api = new DiscordAPIClient();
@@ -41,13 +40,6 @@ export async function main() {
     "Discord application information:",
     `https://discord.com/developers/applications/${env.DISCORD_CLIENT_ID}/bot`,
   );
-
-  // In development mode, we use ngrok to expose the server to the Internet.
-  if (env.DEV) {
-    doNgrok().then((url) => {
-      console.log("Interactions endpoint URL:", url);
-    });
-  }
 
   // Start the server.
   const server = Deno.listen({ port: env.PORT });

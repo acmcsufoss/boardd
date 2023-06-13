@@ -6,19 +6,42 @@ Manage acmcsuf.com board data via Discord slash command.
 
 ### Run the server
 
-To run the server, run the following command:
-
-```sh
-deno run -A main.ts
-```
-
-> NOTE: The `-A` flag is a shortcut to allow the server to access environment
-> variables.
+> **NOTE**
 >
 > Be sure to set the environment variables before running the server.
 >
 > Be sure to [install Deno](https://deno.land/install) before running the
 > server.
+
+You will need to use two terminal windows; one for the HTTP server and one for
+Ngrok.
+
+#### Terminal 1
+
+To run the server, run the following command:
+
+```bash
+deno task start
+```
+
+#### Terminal 2
+
+> **NOTE** You will need to have
+> [Ngrok](https://dashboard.ngrok.com/get-started/setup) installed and in your
+> path.
+
+```bash
+deno task ngrok
+```
+
+In **Terminal 2**, copy the URL that is generated under **Forwarding**.
+
+- The URL should look similar to this:
+  `https://ab01-23-456-78-910.ngrok-free.app`
+
+Set this new URL as the **Interactions Endpoint URL** in the **General** tab of
+your Discord application. Find your application
+[here](https://discord.com/developers/applications).
 
 ### Deploy
 
