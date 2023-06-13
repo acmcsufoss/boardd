@@ -12,6 +12,11 @@ export const ACMCSUF_OWNER = "EthanThatOneKid";
 export const ACMCSUF_REPO = "acmcsuf.com";
 
 /**
+ * ACMCSUF_MAIN_BRANCH is the name of the main branch of the acmcsuf.com GitHub
+ */
+export const ACMCSUF_MAIN_BRANCH = "main";
+
+/**
  * boardd is the main function for the boardd command.
  */
 export async function boardd(options: BoarddOptions): Promise<BoarddResult> {
@@ -54,17 +59,24 @@ export async function boardd(options: BoarddOptions): Promise<BoarddResult> {
     codemod
       .createTree((tree) =>
         tree
+          // TODO(https://oss.acmcsuf.com/codemod/issues/16#issue-1755683762):
+          // Add a way to fallback to the main branch if the branch does not exist.
+          .baseRef(ref, ACMCSUF_MAIN_BRANCH)
           .text("src/lib/public/board/data/officers.json", (content) => {
             // Parse the officers.json file.
             const officers = JSON.parse(content) as Officer[];
 
             // Find the officer.
-            const officerIndex = officers.findIndex((officer) =>
-              officer.socials?.discord === target
-            );
+            const officerIndex = officers.findIndex((officer) => {
+              const discriminatorIndex = officer.socials?.discord?.indexOf("#");
+              const candidate = discriminatorIndex !== -1
+                ? officer.socials?.discord?.slice(0, discriminatorIndex)
+                : officer.socials?.discord;
+              return candidate?.toLowerCase() === target;
+            });
             if (officerIndex === -1 && !options.actor.isAdmin) {
               throw new Error(
-                "You can only create a new board member profile unless you are an admin.",
+                "You can only create a new board member profile if you are an admin.",
               );
             }
 
@@ -108,7 +120,7 @@ export async function boardd(options: BoarddOptions): Promise<BoarddResult> {
       .createCommit(({ 0: tree }) => ({
         message: `Update ${fullName}'s board member profile`,
         tree: tree.sha,
-      }))
+      }), (commit) => commit.parentRef(ACMCSUF_MAIN_BRANCH))
       .createOrUpdateBranch(({ 1: commit }) => ({
         ref,
         sha: commit.sha,
@@ -122,7 +134,7 @@ export async function boardd(options: BoarddOptions): Promise<BoarddResult> {
     return await createCodemod((codemod) =>
       codemod
         .createTree((tree) => {
-          if (oldPicture) {
+          if (oldPicture && oldPicture !== newPicture) {
             tree.delete(`static/assets/authors/${oldPicture}`);
           }
 
@@ -133,7 +145,7 @@ export async function boardd(options: BoarddOptions): Promise<BoarddResult> {
         .createCommit(({ 0: tree }) => ({
           message: `Upload ${fullName}'s board member profile picture`,
           tree: tree.sha,
-        }))
+        }), (commit) => commit.parentRef(ref))
         .createOrUpdateBranch(({ 1: commit }) => ({
           ref,
           sha: commit.sha,
@@ -143,7 +155,7 @@ export async function boardd(options: BoarddOptions): Promise<BoarddResult> {
   const stepThree = await createCodemod((codemod) =>
     codemod.maybeCreatePR({
       head: ref,
-      base: "", // Defaults to repository's default branch.
+      base: ACMCSUF_MAIN_BRANCH,
       title: `[BOARDD] Update ${fullName}'s board member profile`,
       body:
         `This PR was created by ${options.actor.tag} using the \`boardd\` slash command. [_More info_](https://oss.acmcsuf.com/boardd#readme).\n\n${

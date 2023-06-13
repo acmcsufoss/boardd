@@ -114,6 +114,8 @@ export async function handle(request: Request): Promise<Response> {
               content: error.message,
             });
           }
+
+          console.error(error);
         });
 
       // Acknowledge the interaction.
@@ -145,7 +147,7 @@ export function makeBoarddOptions(
   const options: BoarddOptions = {
     githubPAT: env.GITHUB_TOKEN,
     actor: {
-      tag: `${member.user.username}#${member.user.discriminator}`,
+      tag: member.user.username,
       isAdmin: member.roles.some((role) => adminRoleIDs.includes(role)),
     },
     data: {},
