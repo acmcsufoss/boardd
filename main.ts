@@ -88,69 +88,11 @@ export async function handle(request: Request): Promise<Response> {
       }
 
       // Make the Boardd options.
-      const options: BoarddOptions = {
-        githubPAT: env.GITHUB_TOKEN,
-        actor: {
-          tag:
-            `${interaction.member.user.username}#${interaction.member.user.discriminator}`,
-          isAdmin: interaction.member.roles.some((role) =>
-            env.DISCORD_ADMIN_ROLES.includes(role)
-          ),
-        },
-        data: {},
-      };
-
-      const fullNameInput = interaction.data.options?.find((option) =>
-        option.name === BOARDD_FULL_NAME
+      const options = makeBoarddOptions(
+        interaction.member,
+        interaction.data,
+        env.DISCORD_ADMIN_ROLES,
       );
-      if (fullNameInput?.type === discord.ApplicationCommandOptionType.String) {
-        options.data.fullName = fullNameInput.value;
-      }
-
-      const pictureURLInput = interaction.data.options?.find((option) =>
-        option.name === BOARDD_PICTURE
-      );
-      if (
-        pictureURLInput?.type === discord.ApplicationCommandOptionType.String
-      ) {
-        options.data.pictureURL = pictureURLInput.value;
-      }
-
-      const githubTagInput = interaction.data.options?.find((option) =>
-        option.name === BOARDD_GITHUB_TAG
-      );
-      if (
-        githubTagInput?.type === discord.ApplicationCommandOptionType.String
-      ) {
-        options.data.githubTag = githubTagInput.value;
-      }
-
-      const discordTagInput = interaction.data.options?.find((option) =>
-        option.name === BOARDD_DISCORD_TAG
-      );
-      if (
-        discordTagInput?.type === discord.ApplicationCommandOptionType.String
-      ) {
-        options.data.discordTag = discordTagInput.value;
-      }
-
-      const linkedinTagInput = interaction.data.options?.find((option) =>
-        option.name === BOARDD_LINKEDIN_TAG
-      );
-      if (
-        linkedinTagInput?.type === discord.ApplicationCommandOptionType.String
-      ) {
-        options.data.linkedinTag = linkedinTagInput.value;
-      }
-
-      const boardMemberTagInput = interaction.data.options?.find((option) =>
-        option.name === BOARDD_BOARD_MEMBER
-      );
-      if (
-        boardMemberTagInput?.type === discord.ApplicationCommandOptionType.User
-      ) {
-        options.data.boardMemberTag = boardMemberTagInput.value;
-      }
 
       // Invoke the Boardd operation.
       boardd(options)
@@ -190,4 +132,70 @@ export async function handle(request: Request): Promise<Response> {
       return new Response("Invalid request", { status: 400 });
     }
   }
+}
+
+/**
+ * makeBoarddOptions makes the Boardd options from the Discord interaction.
+ */
+export function makeBoarddOptions(
+  member: discord.APIInteractionGuildMember,
+  data: discord.APIChatInputApplicationCommandInteractionData,
+  adminRoleIDs: string[],
+): BoarddOptions {
+  const options: BoarddOptions = {
+    githubPAT: env.GITHUB_TOKEN,
+    actor: {
+      tag: `${member.user.username}#${member.user.discriminator}`,
+      isAdmin: member.roles.some((role) => adminRoleIDs.includes(role)),
+    },
+    data: {},
+  };
+
+  const fullNameInput = data.options
+    ?.find((option) => option.name === BOARDD_FULL_NAME);
+  if (fullNameInput?.type === discord.ApplicationCommandOptionType.String) {
+    options.data.fullName = fullNameInput.value;
+  }
+
+  const pictureURLInput = data.options
+    ?.find((option) => option.name === BOARDD_PICTURE);
+  if (
+    pictureURLInput?.type === discord.ApplicationCommandOptionType.String
+  ) {
+    options.data.pictureURL = pictureURLInput.value;
+  }
+
+  const githubTagInput = data.options
+    ?.find((option) => option.name === BOARDD_GITHUB_TAG);
+  if (
+    githubTagInput?.type === discord.ApplicationCommandOptionType.String
+  ) {
+    options.data.githubTag = githubTagInput.value;
+  }
+
+  const discordTagInput = data.options
+    ?.find((option) => option.name === BOARDD_DISCORD_TAG);
+  if (
+    discordTagInput?.type === discord.ApplicationCommandOptionType.String
+  ) {
+    options.data.discordTag = discordTagInput.value;
+  }
+
+  const linkedinTagInput = data.options
+    ?.find((option) => option.name === BOARDD_LINKEDIN_TAG);
+  if (
+    linkedinTagInput?.type === discord.ApplicationCommandOptionType.String
+  ) {
+    options.data.linkedinTag = linkedinTagInput.value;
+  }
+
+  const boardMemberTagInput = data.options
+    ?.find((option) => option.name === BOARDD_BOARD_MEMBER);
+  if (
+    boardMemberTagInput?.type === discord.ApplicationCommandOptionType.User
+  ) {
+    options.data.boardMemberTag = boardMemberTagInput.value;
+  }
+
+  return options;
 }
