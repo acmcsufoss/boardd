@@ -101,8 +101,9 @@ export async function handle(request: Request): Promise<Response> {
             botID: env.DISCORD_CLIENT_ID,
             botToken: env.DISCORD_TOKEN,
             interactionToken: interaction.token,
-            content:
-              `Successfully created <https://acmcsuf.com/pull/${result.prNumber}>!`,
+            content: result.number === undefined
+              ? `Successfully updated [\`${result.ref}\`](https://acmcsuf.com/code/tree/${result.ref})!`
+              : `Successfully created <https://acmcsuf.com/pull/${result.number}>!`,
           })
         )
         .catch((error) => {
@@ -148,6 +149,7 @@ export function makeBoarddOptions(
     githubPAT: env.GITHUB_TOKEN,
     actor: {
       tag: member.user.username,
+      nick: member.nick ?? undefined,
       isAdmin: member.roles.some((role) => adminRoleIDs.includes(role)),
     },
     data: {},

@@ -17,6 +17,11 @@ export const ACMCSUF_REPO = "acmcsuf.com";
 export const ACMCSUF_MAIN_BRANCH = "main";
 
 /**
+ * ACMCSUF_BOARDD_PATH is the path to the board data file.
+ */
+export const ACMCSUF_BOARDD_PATH = "src/lib/public/board/data/officers.json";
+
+/**
  * boardd is the main function for the boardd command.
  */
 export async function boardd(options: BoarddOptions): Promise<BoarddResult> {
@@ -42,11 +47,8 @@ export async function boardd(options: BoarddOptions): Promise<BoarddResult> {
   const pictureBlob = options.data.pictureURL
     ? await fetch(options.data.pictureURL).then((response) => response.blob())
     : undefined;
-
-  // Steps:
-  // 1. Create a branch with the updated JSON file. Check the old picture.
-  // 2. If the picture is different, upload the new picture and delete the old one.
-  // 3. Create a PR with the changes.
+  let oldPicture: string | undefined;
+  let newPicture: string | undefined;
 
   const apiOptions: Parameters<typeof createCodemod>[1] = {
     owner: ACMCSUF_OWNER,
@@ -54,88 +56,106 @@ export async function boardd(options: BoarddOptions): Promise<BoarddResult> {
     token: options.githubPAT,
   };
 
-  let oldPicture: string | undefined;
-  let newPicture: string | undefined;
-  const stepOne = await createCodemod((codemod) =>
-    codemod
-      .createTree((tree) =>
-        tree
-          // TODO(https://oss.acmcsuf.com/codemod/issues/16#issue-1755683762):
-          // Add a way to fallback to the main branch if the branch does not exist.
-          .baseRef(ref, ACMCSUF_MAIN_BRANCH)
-          .text("src/lib/public/board/data/officers.json", (content) => {
-            // Parse the officers.json file.
-            const officers = JSON.parse(content) as Officer[];
+  /**
+   * stepOne is the first step of the boardd command. It creates a branch with
+   * the updated JSON file.
+   */
+  async function stepOne() {
+    return await createCodemod((codemod) =>
+      codemod
+        .createTree((tree) =>
+          tree
+            .baseRef(ref, ACMCSUF_MAIN_BRANCH)
+            .text(ACMCSUF_BOARDD_PATH, (content) => {
+              // Parse the officers.json file.
+              const officers = JSON.parse(content) as Officer[];
 
-            // Find the base officer.
-            const [officer, officerIndex] = findOfficer(officers, target);
-            if (!officer && !options.actor.isAdmin) {
-              throw new Error(
-                "You can only create a new board member profile if you are an admin.",
-              );
-            }
+              // Find the base officer.
+              const [officer, officerIndex] = findOfficer(officers, target);
+              if (!officer && !options.actor.isAdmin) {
+                throw new Error(
+                  "You can only create a new board member profile if you are an admin.",
+                );
+              }
 
-            // Find the actor.
-            const [actor] = findOfficer(officers, options.actor.tag);
+              // Find the actor.
+              const [actor] = findOfficer(officers, options.actor.tag);
+              actorGitHubTag = actor?.socials?.github;
 
-            // Patch the officer.
-            fullName ??= officer?.fullName;
-            if (fullName === undefined) {
-              throw new Error("Full name cannot be undefined.");
-            }
+              // Patch the officer.
+              fullName ??= officer?.fullName;
+              if (fullName === undefined) {
+                throw new Error("Full name cannot be undefined.");
+              }
 
-            if (pictureBlob) {
               newPicture = `${toSlug(fullName)}.webp`;
               oldPicture = officer?.picture;
-            }
-            const socials: Officer["socials"] = {
-              github: options.data.githubTag ?? officer?.socials?.github,
-              linkedin: options.data.linkedinTag ?? officer?.socials?.linkedin,
-              discord: target,
-            };
-            const positions: Officer["positions"] = officer?.positions ?? {};
-            const newOfficer: Officer = {
-              fullName,
-              socials,
-              positions,
-              picture: newPicture ?? officer?.picture ?? "placeholder.webp",
-            };
+              const socials: Officer["socials"] = {
+                github: options.data.githubTag ?? officer?.socials?.github,
+                linkedin: options.data.linkedinTag ??
+                  officer?.socials?.linkedin,
+                discord: target,
+              };
+              const positions: Officer["positions"] = officer?.positions ?? {};
+              const newOfficer: Officer = {
+                fullName,
+                socials,
+                positions,
+                picture: pictureBlob
+                  ? newPicture
+                  : (officer?.picture ?? "placeholder.webp"),
+              };
 
-            // Update the officers array.
-            if (!officer) {
-              officers.push(newOfficer);
-            } else {
-              officers[officerIndex] = officer;
-            }
+              // Update the officers array.
+              if (!officer) {
+                officers.push(newOfficer);
+              } else {
+                officers[officerIndex] = newOfficer;
+              }
 
-            // Return the new officers.json file content.
-            return JSON.stringify(officers, null, 2) + "\n";
-          })
-      )
-      .createCommit(({ 0: tree }) => ({
-        message: `Update ${fullName}'s board member profile`,
-        tree: tree.sha,
-      }), (commit) => commit.parentRef(ACMCSUF_MAIN_BRANCH))
-      .createOrUpdateBranch(({ 1: commit }) => ({
-        ref,
-        sha: commit.sha,
-      })), apiOptions);
+              // Return the new officers.json file content.
+              return JSON.stringify(officers, null, 2) + "\n";
+            })
+        )
+        .createCommit(({ 0: tree }) => ({
+          message: `Update ${fullName}'s board member profile`,
+          tree: tree.sha,
+        }), (commit) => commit.parentRef(ref, ACMCSUF_MAIN_BRANCH))
+        .createOrUpdateBranch(({ 1: commit }) => ({
+          ref,
+          sha: commit.sha,
+        })), apiOptions);
+  }
 
-  const stepTwo = await (async () => {
-    if (!pictureBlob || !newPicture) {
+  /**
+   * stepTwo is the second step of the boardd command. It uploads the new
+   * picture and deletes the old one if it is different.
+   */
+  async function stepTwo() {
+    if (!pictureBlob || !oldPicture) {
       return;
     }
 
     return await createCodemod((codemod) =>
       codemod
         .createTree((tree) => {
-          if (oldPicture && oldPicture !== newPicture) {
-            tree.delete(`static/assets/authors/${oldPicture}`);
+          if (pictureBlob) {
+            tree
+              .file(`static/assets/authors/${newPicture}`, pictureBlob);
+
+            if (oldPicture !== newPicture) {
+              tree
+                .delete(`static/assets/authors/${oldPicture}`);
+            }
+          } else if (oldPicture !== newPicture) {
+            tree
+              .rename(
+                `static/assets/authors/${oldPicture}`,
+                `static/assets/authors/${newPicture}`,
+              );
           }
 
-          return tree
-            .baseRef(ref)
-            .file(`static/assets/authors/${newPicture}`, pictureBlob);
+          return tree.baseRef(ref);
         })
         .createCommit(({ 0: tree }) => ({
           message: `Upload ${fullName}'s board member profile picture`,
@@ -145,21 +165,36 @@ export async function boardd(options: BoarddOptions): Promise<BoarddResult> {
           ref,
           sha: commit.sha,
         })), apiOptions);
-  })();
+  }
 
-  const stepThree = await createCodemod((codemod) =>
-    codemod.maybeCreatePR({
-      head: ref,
-      base: ACMCSUF_MAIN_BRANCH,
-      title: `[BOARDD] Update ${fullName}'s board member profile`,
-      body:
-        `This PR was created by ${options.actor.tag} using the \`boardd\` slash command. [_More info_](https://oss.acmcsuf.com/boardd#readme).\n\n${
+  /**
+   * stepThree is the third step of the boardd command. It creates a PR with the
+   * changes.
+   */
+  async function stepThree() {
+    return await createCodemod((codemod) =>
+      codemod.maybeCreatePR({
+        head: ref,
+        base: ACMCSUF_MAIN_BRANCH,
+        title: `[BOARDD] Update ${fullName}'s board member profile`,
+        body: `This PR was created by ${
+          actorGitHubTag
+            ? `@${actorGitHubTag}`
+            : options.actor.nick ?? `\`@${options.actor.tag}\``
+        } using the \`boardd\` slash command. [_More info_](https://oss.acmcsuf.com/boardd#readme).\n\n${
           toChangelog(options.data)
         }`,
-    }), apiOptions);
+      }), apiOptions);
+  }
 
-  console.log({ stepOne, stepTwo, stepThree });
-  return { prNumber: stepThree[0]?.number };
+  // Run the steps.
+  const result = await (
+    stepOne()
+      .then(stepTwo)
+      .then(stepThree)
+  );
+
+  return { ref, number: result[0]?.number };
 }
 
 /**
@@ -168,12 +203,13 @@ export async function boardd(options: BoarddOptions): Promise<BoarddResult> {
 export function findOfficer(
   officers: Officer[],
   tag: string,
-): [Officer | undefined, number] {
+): [undefined, -1] | [Officer, number] {
   const officerIndex = officers.findIndex((officer) => {
     const discriminatorIndex = officer.socials?.discord?.indexOf("#");
     const candidate = discriminatorIndex !== -1
       ? officer.socials?.discord?.slice(0, discriminatorIndex)
       : officer.socials?.discord;
+
     return candidate?.toLowerCase() === tag;
   });
   if (officerIndex === -1) {
@@ -242,9 +278,16 @@ export interface BoarddOptions {
     tag: string;
 
     /**
-     * isAdmin is whether the actor is an admin or not.
+     * nick is the nickname of the actor.
      */
-    isAdmin: boolean;
+    nick?: string;
+
+    /**
+     * isAdmin is whether the actor is an admin or not.
+     *
+     * By default, this is false.
+     */
+    isAdmin?: boolean;
   };
 
   /**
@@ -288,5 +331,6 @@ export interface BoarddOptions {
  * BoarddResult is the result of the boardd function.
  */
 export interface BoarddResult {
-  prNumber?: number;
+  ref: string;
+  number?: number;
 }
