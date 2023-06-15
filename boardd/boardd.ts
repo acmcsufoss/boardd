@@ -181,9 +181,7 @@ export async function boardd(options: BoarddOptions): Promise<BoarddResult> {
           actorGitHubTag
             ? `@${actorGitHubTag}`
             : options.actor.nick ?? `\`@${options.actor.tag}\``
-        } using the \`boardd\` slash command. [_More info_](https://oss.acmcsuf.com/boardd#readme).\n\n${
-          toChangelog(options.data)
-        }`,
+        } using the \`boardd\` slash command. [_More info_](https://oss.acmcsuf.com/boardd#readme).`,
       }), apiOptions);
   }
 
@@ -217,34 +215,6 @@ export function findOfficer(
   }
 
   return [officers[officerIndex], officerIndex];
-}
-
-/**
- * toChangelog converts the data to a changelog.
- */
-export function toChangelog(data: BoarddOptions["data"]): string {
-  const lines: string[] = [];
-  if (data.fullName) {
-    lines.push(`- **Full Name**: ${data.fullName}`);
-  }
-
-  if (data.pictureURL) {
-    lines.push(`- **Picture**: ${data.pictureURL}`);
-  }
-
-  if (data.githubTag) {
-    lines.push(`- **GitHub Tag**: ${data.githubTag}`);
-  }
-
-  if (data.discordTag) {
-    lines.push(`- **Discord Tag**: ${data.discordTag}`);
-  }
-
-  if (data.linkedinTag) {
-    lines.push(`- **LinkedIn Tag**: ${data.linkedinTag}`);
-  }
-
-  return lines.join("\n");
 }
 
 /**
