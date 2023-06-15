@@ -116,6 +116,6 @@
     "https://esm.sh/v124/fast-json-patch@3.1.1/module/helpers.d.ts": "ebf6e19cb84d78da20d022a95f05e8aef12e56f816a1ee12835a4da40d7b14cf",
     "https://esm.sh/v125/tweetnacl@1.0.3/denonext/tweetnacl.mjs": "e3f326d197a7d2dc580dc57db86b5adb6374d9a64de2d5b6a1711612c930c1c7",
     "https://esm.sh/v125/tweetnacl@1.0.3/nacl.d.ts": "60592f5ae1b739c9607a99895d4a3ad5c865b16903e4180e50b256e360a4a104",
-    "https://raw.githubusercontent.com/EthanThatOneKid/acmcsuf.com/65d3cac9653f4469f51a4dad224d8878795ffc55/src/lib/public/board/types.ts": "9da56b81fdeeda2d9536453df6edc8ff584e45596fe451bf6331aea236d2bf03"
+    "https://raw.githubusercontent.com/EthanThatOneKid/acmcsuf.com/1e8650a2e38bc65bd59e883c0ccff8995519a623/src/lib/public/board/types.ts": "d141d776ab47fe57dbcaa727e57760c92956fd2a130309f5c8f365fb171f01f9"
   }
 }

@@ -101,10 +101,30 @@ export async function boardd(options: BoarddOptions): Promise<BoarddResult> {
                 fullName,
                 socials,
                 positions,
-                picture: pictureBlob
-                  ? newPicture
-                  : (officer?.picture ?? "placeholder.webp"),
               };
+
+              // Update the officer's picture.
+              if (pictureBlob) {
+                newOfficer.picture = newPicture;
+              }
+
+              if (officer?.picture) {
+                newOfficer.picture ||= officer.picture;
+              }
+
+              if (newOfficer.picture === "placeholder.webp") {
+                delete newOfficer.picture;
+              }
+
+              // Keep the officer's legacy picture if the officer does not have
+              // a picture.
+              if (
+                !pictureBlob &&
+                officer?.legacyPicture &&
+                newOfficer.legacyPicture !== "placeholder.webp"
+              ) {
+                newOfficer.legacyPicture = officer.legacyPicture;
+              }
 
               // Update the officers array.
               if (!officer) {
