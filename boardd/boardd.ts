@@ -181,6 +181,7 @@ export async function boardd(options: BoarddOptions): Promise<BoarddResult> {
           message: `Upload ${fullName}'s board member profile picture`,
           tree: tree.sha,
         }), (commit) => commit.parentRef(ref))
+        // TODO(https://oss.acmcsuf.com/codemod/issues/18): Update the current branch from main.
         .createOrUpdateBranch(({ 1: commit }) => ({
           ref,
           sha: commit.sha,
