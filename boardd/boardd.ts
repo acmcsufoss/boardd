@@ -202,6 +202,7 @@ export async function boardd(options: BoarddOptions): Promise<BoarddResult> {
             ? `@${actorGitHubTag}`
             : options.actor.nick ?? `\`@${options.actor.tag}\``
         } using the \`boardd\` slash command. [_More info_](https://oss.acmcsuf.com/boardd#readme).`,
+        draft: true,
       }), apiOptions);
   }
 
