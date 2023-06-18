@@ -37,16 +37,16 @@ if (!RAW_DISCORD_TOKEN) {
  */
 export const DISCORD_TOKEN = RAW_DISCORD_TOKEN;
 
-const RAW_DISCORD_ROLE_ID = Deno.env.get("DISCORD_ROLE_ID");
-if (!RAW_DISCORD_ROLE_ID) {
-  throw new Error("DISCORD_ROLE_ID environment variable is required");
+const RAW_DISCORD_BOARD_ROLES = Deno.env.get("DISCORD_BOARD_ROLES");
+if (!RAW_DISCORD_BOARD_ROLES) {
+  throw new Error("DISCORD_BOARD_ROLES environment variable is required");
 }
 
 /**
- * DISCORD_ROLE_ID is the Discord role ID that is allowed to use the Boardd
- * application command. The command is intended to be used by board members.
+ * DISCORD_BOARD_ROLES is a comma-separated list of Discord role IDs that are
+ * allowed to use the Boardd application command on themselves.
  */
-export const DISCORD_ROLE_ID = RAW_DISCORD_ROLE_ID;
+export const DISCORD_BOARD_ROLES = RAW_DISCORD_BOARD_ROLES;
 
 const RAW_DISCORD_ADMIN_ROLES = Deno.env.get("DISCORD_ADMIN_ROLES");
 if (!RAW_DISCORD_ADMIN_ROLES) {
