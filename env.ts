@@ -7,11 +7,6 @@ await dotenv.load({ export: true });
  */
 export const PORT = parseInt(Deno.env.get("PORT") || "8080");
 
-/**
- * DEV is true if the application is running in development mode.
- */
-export const DEV = Deno.env.get("DEV") === "true";
-
 const RAW_DISCORD_PUBLIC_KEY = Deno.env.get("DISCORD_PUBLIC_KEY");
 if (!RAW_DISCORD_PUBLIC_KEY) {
   throw new Error("DISCORD_PUBLIC_KEY environment variable is required");
