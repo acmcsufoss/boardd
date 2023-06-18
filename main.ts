@@ -83,7 +83,11 @@ export async function handle(request: Request): Promise<Response> {
         return new Response("Invalid request", { status: 400 });
       }
 
-      if (!interaction.member.roles.includes(env.DISCORD_ROLE_ID)) {
+      if (
+        !interaction.member.roles.some((role) =>
+          env.DISCORD_BOARD_ROLES.includes(role)
+        )
+      ) {
         return new Response("Invalid request", { status: 400 });
       }
 
