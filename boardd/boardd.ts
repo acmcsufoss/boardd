@@ -180,6 +180,7 @@ export async function boardd(options: BoarddOptions): Promise<BoarddResult> {
         // TODO: Add an option to resolve merge conflicts automatically if the branch is not up to
         // date with a base branch or the default branch.
         // TODO(https://oss.acmcsuf.com/codemod/issues/18): Update the current branch from main.
+        // Status: On hold.
         .createOrUpdateBranch(({ 1: commit }) => ({
           ref,
           sha: commit.sha,
