@@ -60,7 +60,7 @@ export async function boardd(options: BoarddOptions): Promise<BoarddResult> {
    * stepOne is the first step of the boardd command. It creates a branch with
    * the updated JSON file.
    */
-  async function stepOne() {
+  async function step1() {
     return await createCodemod((codemod) =>
       codemod
         .createTree((tree) =>
@@ -151,28 +151,24 @@ export async function boardd(options: BoarddOptions): Promise<BoarddResult> {
    * stepTwo is the second step of the boardd command. It uploads the new
    * picture and deletes the old one if it is different.
    */
-  async function stepTwo() {
+  async function step2() {
     if (!pictureBlob || !oldPicture) {
       return;
     }
 
+    const oldPicturePath = `static/assets/authors/${oldPicture}`;
+    const newPicturePath = `static/assets/authors/${newPicture}`;
     return await createCodemod((codemod) =>
       codemod
         .createTree((tree) => {
           if (pictureBlob) {
-            tree
-              .file(`static/assets/authors/${newPicture}`, pictureBlob);
+            tree.file(newPicturePath, pictureBlob);
 
             if (oldPicture !== newPicture) {
-              tree
-                .delete(`static/assets/authors/${oldPicture}`);
+              tree.delete(oldPicturePath);
             }
           } else if (oldPicture !== newPicture) {
-            tree
-              .rename(
-                `static/assets/authors/${oldPicture}`,
-                `static/assets/authors/${newPicture}`,
-              );
+            tree.rename(oldPicturePath, newPicturePath);
           }
 
           return tree.baseRef(ref);
@@ -181,6 +177,8 @@ export async function boardd(options: BoarddOptions): Promise<BoarddResult> {
           message: `Upload ${fullName}'s board member profile picture`,
           tree: tree.sha,
         }), (commit) => commit.parentRef(ref))
+        // TODO: Add an option to resolve merge conflicts automatically if the branch is not up to
+        // date with a base branch or the default branch.
         // TODO(https://oss.acmcsuf.com/codemod/issues/18): Update the current branch from main.
         .createOrUpdateBranch(({ 1: commit }) => ({
           ref,
@@ -192,7 +190,7 @@ export async function boardd(options: BoarddOptions): Promise<BoarddResult> {
    * stepThree is the third step of the boardd command. It creates a PR with the
    * changes.
    */
-  async function stepThree() {
+  async function step3() {
     return await createCodemod((codemod) =>
       codemod.maybeCreatePR({
         head: ref,
@@ -209,9 +207,9 @@ export async function boardd(options: BoarddOptions): Promise<BoarddResult> {
 
   // Run the steps.
   const result = await (
-    stepOne()
-      .then(stepTwo)
-      .then(stepThree)
+    step1()
+      .then(step2)
+      .then(step3)
   );
 
   return { ref, number: result[0]?.number };
