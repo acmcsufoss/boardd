@@ -25,7 +25,7 @@ export const BOARDD_LINKEDIN_TAG_DESCRIPTION =
 
 export const BOARDD_BOARD_MEMBER = "board_member";
 export const BOARDD_BOARD_MEMBER_DESCRIPTION =
-  "The user to add to the board. Only admins can update other users.";
+  "The targeted board member to update by Discord username.";
 
 /**
  * APP_BOARDD is the top-level command for the Boardd Application Command.
@@ -66,7 +66,7 @@ export const APP_BOARDD: discord.RESTPostAPIApplicationCommandsJSONBody = {
       required: false,
     },
     {
-      type: discord.ApplicationCommandOptionType.User,
+      type: discord.ApplicationCommandOptionType.String,
       name: BOARDD_BOARD_MEMBER,
       description: BOARDD_BOARD_MEMBER_DESCRIPTION,
       required: false,

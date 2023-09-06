@@ -73,9 +73,8 @@ export async function handle(request: Request): Promise<Response> {
       }
 
       if (
-        !interaction.member.roles.some((role) =>
-          env.DISCORD_BOARD_ROLES.includes(role)
-        )
+        !interaction.member.roles
+          .some((role) => env.DISCORD_BOARD_ROLES.includes(role))
       ) {
         return new Response("Invalid request", { status: 400 });
       }
@@ -143,7 +142,8 @@ export function makeBoarddOptions(
     actor: {
       tag: member.user.username,
       nick: member.nick ?? undefined,
-      isAdmin: member.roles.some((role) => adminRoleIDs.includes(role)),
+      isAdmin: member.roles
+        .some((role) => adminRoleIDs.includes(role)),
     },
     data: {},
   };

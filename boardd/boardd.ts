@@ -38,8 +38,10 @@ export async function boardd(options: BoarddOptions): Promise<BoarddResult> {
   }
 
   // Update officer data in new branch.
-  const target = options.data.boardMemberTag ?? options.actor.tag;
-  const ref = `boardd-${toSlug(target)}`;
+  const targetDiscordTag = parseDiscordTag(
+    options.data.boardMemberTag ?? options.actor.tag,
+  );
+  const ref = `boardd-${toSlug(targetDiscordTag)}`;
   let fullName = options.data.fullName;
   let actorGitHubTag: string | undefined;
 
@@ -71,7 +73,10 @@ export async function boardd(options: BoarddOptions): Promise<BoarddResult> {
               const officers = JSON.parse(content) as Officer[];
 
               // Find the base officer.
-              const [officer, officerIndex] = findOfficer(officers, target);
+              const [officer, officerIndex] = findOfficer(
+                officers,
+                targetDiscordTag,
+              );
               if (!officer && !options.actor.isAdmin) {
                 throw new Error(
                   "You can only create a new board member profile if you are an admin.",
@@ -94,7 +99,7 @@ export async function boardd(options: BoarddOptions): Promise<BoarddResult> {
                 github: options.data.githubTag ?? officer?.socials?.github,
                 linkedin: options.data.linkedinTag ??
                   officer?.socials?.linkedin,
-                discord: target,
+                discord: targetDiscordTag,
               };
               const positions: Officer["positions"] = officer?.positions ?? {};
               const newOfficer: Officer = {
@@ -215,6 +220,14 @@ export async function boardd(options: BoarddOptions): Promise<BoarddResult> {
 }
 
 /**
+ * parseDiscordTag parses the Discord tag from the Discord username.
+ */
+function parseDiscordTag(tag: string): string {
+  const discriminatorIndex = tag.indexOf("#");
+  return discriminatorIndex !== -1 ? tag.slice(0, discriminatorIndex) : tag;
+}
+
+/**
  * findOfficer finds an officer by their Discord tag.
  */
 export function findOfficer(
@@ -222,11 +235,11 @@ export function findOfficer(
   tag: string,
 ): [undefined, -1] | [Officer, number] {
   const officerIndex = officers.findIndex((officer) => {
-    const discriminatorIndex = officer.socials?.discord?.indexOf("#");
-    const candidate = discriminatorIndex !== -1
-      ? officer.socials?.discord?.slice(0, discriminatorIndex)
-      : officer.socials?.discord;
+    if (!officer.socials?.discord) {
+      return false;
+    }
 
+    const candidate = parseDiscordTag(officer.socials.discord);
     return candidate?.toLowerCase() === tag;
   });
   if (officerIndex === -1) {
@@ -309,8 +322,8 @@ export interface BoarddOptions {
     linkedinTag?: string;
 
     /**
-     * boardMemberTag is the Discord tag of the board member as stored in the
-     * database. This is only used when updating a board member as an admin.
+     * boardMemberTag is the Discord tag of the board member to update. This
+     * is only used when to update another board member's profile as an admin.
      */
     boardMemberTag?: string;
   };
@@ -320,6 +333,13 @@ export interface BoarddOptions {
  * BoarddResult is the result of the boardd function.
  */
 export interface BoarddResult {
+  /**
+   * ref is the name of the branch that was created.
+   */
   ref: string;
+
+  /**
+   * number is the number of the PR that was created.
+   */
   number?: number;
 }
